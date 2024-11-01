@@ -5,14 +5,14 @@ import { StyleSheet, Text, View, Image } from 'react-native';
 import Sunny from '../assets/Sunny.svg'
 
 // Component Rendering
-export default function CurrentWeatherDisplay({ Location }) {
+export default function CurrentWeatherDisplay({ Location, CurrentTemp }) {
     return (
         <View>
             <Text style={styles.CityText}> {Location} </Text>
             <View style={styles.WeatherContainer}>
                 <Sunny width={290} height={290}/>
             </View>
-            <Text style={styles.TemperatureText}> 14° </Text>
+            <Text style={styles.TemperatureText}> {CurrentTemp}° </Text>
             <Text style={styles.WeatherText}> Sunny </Text>
         </View>
     )
