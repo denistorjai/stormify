@@ -1,8 +1,10 @@
 import 'react-native-gesture-handler';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { StyleSheet, Text, TextInput, Button, View, FlatList, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, TextInput, Button, View, FlatList, TouchableOpacity, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons'; 
 
 // Weather Display Screen
 import WeatherScreen from './Screens/WeatherScreen';
@@ -14,9 +16,36 @@ const Stack = createStackNavigator();
 function CitySelectionScreen({ navigation }) {
 
   // City States & Error States
-  const [cities, setCities] = useState(['Calgary', 'Vancouver', 'Seoul', 'Singapore']);
+  const [cities, setCities] = useState([]);
   const [newCity, setNewCity] = useState('');
   const [error, setError] = useState('');
+
+  // Load cities from AsyncStorage when component mounts
+  useEffect(() => {
+    const loadCities = async () => {
+      try {
+        const storedCities = await AsyncStorage.getItem('cities');
+        if (storedCities) {
+          setCities(JSON.parse(storedCities));
+        }
+      } catch (error) {
+        console.error('Error loading cities from AsyncStorage:', error);
+        setCities(['Calgary', 'Vancouver', 'Seoul', 'Singapore']); // Fallback
+      }
+    };
+  
+    loadCities();
+  }, []);
+  
+
+  // Save cities to AsyncStorage
+  const saveCitiesToStorage = async (newCities) => {
+    try {
+      await AsyncStorage.setItem('cities', JSON.stringify(newCities));
+    } catch (error) {
+      console.error('Error saving cities to AsyncStorage:', error);
+    }
+  };
 
   // City Weather Verification
   const verifyCity = async (city) => {
@@ -43,27 +72,50 @@ function CitySelectionScreen({ navigation }) {
   const handleAddCity = async () => {
 
     if (newCity.trim()) {
-
-      if (cities.includes(newCity.trim())) {
-        setError('City already added, Please enter a different city');
+      const cityName = newCity.trim().toLowerCase();
+  
+      // Check for duplicates
+      if (cities.map(city => city.toLowerCase()).includes(cityName)) {
+        setError('City already added. Please enter a different city.');
         return;
-      }  
-
+      }
+  
+      // Verify city
       const isValid = await verifyCity(newCity.trim());
-
+  
       if (isValid) {
-        setCities([...cities, newCity.trim()]);
-        setNewCity('');
+        const updatedCities = [...cities, newCity.trim()]; 
+        setCities(updatedCities); 
+        setNewCity(''); 
+        await saveCitiesToStorage(updatedCities); 
         setError('');
       } else {
-        setError('City not found, Please enter a valid city');
+        setError('City not found. Please enter a valid city.');
       }
-
     } else {
-      setError('Please enter a city name');
+      setError('Please enter a city name.');
     }
-
   };
+  
+  // About/Info About API Usage.
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          style={{ marginRight: 25 }}
+          onPress={() =>
+            Alert.alert(
+              'API Information',
+              'This app uses the OpenWeatherMap API to fetch weather data.',
+              [{ text: 'OK' }]
+            )
+          }
+        >
+          <Ionicons name="information-circle-outline" size={24} color="#ffffff" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
 
   return (
     <View style={styles.container}>
